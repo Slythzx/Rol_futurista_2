@@ -54,22 +54,41 @@ def resolver_tirada(c, n, caras, attr_sel="none", bonus_type="none", extra=0, mo
     return total, "  ".join(partes) + f"  =  <b>{total}</b>"
 
 
-def dice_tool(author, c=None, key_prefix="dice", can_clear=False, cooldown=True):
-    """Herramienta de dados libre, fiel a Herramientas.html. Publica en el log."""
-    st.markdown('<div class="card"><h2>🎲 Tiradas de Dados</h2></div>', unsafe_allow_html=True)
-    c1, c2, c3, c4, c5 = st.columns([1, 1, 1.4, 1.4, 1])
-    n = c1.number_input("Cantidad", min_value=1, max_value=MAX_DICE, value=1, step=1,
-                        key=f"{key_prefix}_n", help=f"Máximo {MAX_DICE} dados por tirada")
-    caras = c2.selectbox("Dado", CARAS, index=1, format_func=lambda s: f"d{s}",
-                         key=f"{key_prefix}_sides")
-    attr_sel = c3.selectbox("Atributo a sumar", ATTR_OPCIONES,
-                            format_func=lambda a: ATTR_OPCION_LABEL[a], key=f"{key_prefix}_attr")
-    bonus_type = c4.selectbox("Bonos", list(BONOS), format_func=lambda b: BONOS[b],
-                              key=f"{key_prefix}_bonus")
-    flat = c5.number_input("Extra (+/-)", value=0, step=1, key=f"{key_prefix}_flat")
+def free_roll_form(author, c=None, key_prefix="dice", cooldown=True, compact=False,
+                   can_clear=False):
+    """Formulario de tirada libre. Publica el resultado en el log de la mesa.
 
-    b_roll, b_clear = st.columns([1, 1.4])
-    if b_roll.button("Tirar 🎲", type="primary", key=f"{key_prefix}_roll"):
+    `compact` reparte los campos en filas de dos para caber en una columna lateral.
+    """
+    if compact:
+        f1 = st.columns(2)
+        f2 = st.columns(2)
+        f3 = st.columns(2)
+        cols = [f1[0], f1[1], f2[0], f2[1], f3[0]]
+    else:
+        cols = st.columns([1, 1, 1.4, 1.4, 1])
+    n = cols[0].number_input("Cantidad", min_value=1, max_value=MAX_DICE, value=1, step=1,
+                             key=f"{key_prefix}_n", help=f"Máximo {MAX_DICE} dados por tirada")
+    caras = cols[1].selectbox("Dado", CARAS, index=1, format_func=lambda s: f"d{s}",
+                              key=f"{key_prefix}_sides")
+    attr_sel = cols[2].selectbox("Atributo a sumar", ATTR_OPCIONES,
+                                 format_func=lambda a: ATTR_OPCION_LABEL[a],
+                                 key=f"{key_prefix}_attr")
+    bonus_type = cols[3].selectbox("Bonos", list(BONOS), format_func=lambda b: BONOS[b],
+                                   key=f"{key_prefix}_bonus")
+    flat = cols[4].number_input("Extra (+/-)", value=0, step=1, key=f"{key_prefix}_flat")
+
+    if compact:
+        with f3[1]:
+            st.markdown('<div style="height:28px"></div>', unsafe_allow_html=True)
+            tirar = st.button("Tirar 🎲", type="primary", key=f"{key_prefix}_roll",
+                              use_container_width=True)
+        b_clear = None
+    else:
+        b_roll, b_clear = st.columns([1, 1.4])
+        tirar = b_roll.button("Tirar 🎲", type="primary", key=f"{key_prefix}_roll")
+
+    if tirar:
         espera = cooldown_restante(cooldown)
         if espera > 0:
             st.warning(f"⏳ Espera {espera:.0f} s antes de la siguiente tirada.")
@@ -77,11 +96,18 @@ def dice_tool(author, c=None, key_prefix="dice", can_clear=False, cooldown=True)
             marcar_tirada()
             _, detalle = resolver_tirada(c, n, caras, attr_sel, bonus_type, flat)
             log_line(author, detalle)
-    if can_clear and b_clear.button("🧹 Limpiar historial", key=f"{key_prefix}_clear",
-                                    help="Borra el log de la mesa para todos"):
+            st.rerun()
+    if can_clear and b_clear is not None and b_clear.button(
+            "🧹 Limpiar historial", key=f"{key_prefix}_clear",
+            help="Borra el log de la mesa para todos"):
         clear_log()
         st.rerun()
 
+
+def dice_tool(author, c=None, key_prefix="dice", can_clear=False, cooldown=True):
+    """Pestaña de dados completa: tirada libre + log de la mesa."""
+    st.markdown('<div class="card"><h2>🎲 Tiradas de Dados</h2></div>', unsafe_allow_html=True)
+    free_roll_form(author, c, key_prefix=key_prefix, cooldown=cooldown, can_clear=can_clear)
     st.markdown('<div class="hr"></div>', unsafe_allow_html=True)
     st.markdown('<span class="muted small">Log de la Mesa (visible para todos)</span>',
                 unsafe_allow_html=True)

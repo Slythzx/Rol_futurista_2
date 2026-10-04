@@ -16,7 +16,7 @@ from .dm_initiative import dm_initiative_panel
 from .reglas import render_reglas
 from .sheet import render_sheet_control
 from .widgets import (commit_field, dmg_attr_selector, fkey, num_field, render_attr_summary,
-                      text_field)
+                      render_log_panel, text_field)
 
 MONITOR_COLS = [1.9, 0.65, 0.75, 0.75, 0.75, 0.75, 0.8, 0.8, 1.35, 0.5, 0.5]
 MONITOR_HDR = ["Personaje", "Nivel", "Cuerpo", "Mente", "Espíritu", "PA",
@@ -88,14 +88,22 @@ def dm_monitor_panel():
                 'la estadística elegida.</span>', unsafe_allow_html=True)
 
     st.markdown('<div class="hr"></div>', unsafe_allow_html=True)
-    st.markdown('<div class="card"><h2>🔍 Ficha en detalle (daños, PA y acciones)</h2></div>',
-                unsafe_allow_html=True)
-    sel = st.selectbox("Ficha", sorted(chars), key="dm_view_sel", label_visibility="collapsed")
-    if sel and sel in chars:
-        render_sheet_control(chars[sel], author=f"DM → {sel}", key_prefix="dmctl")
-        st.download_button("💾 Exportar esta ficha (JSON)", data=char_backup_json(chars[sel]),
-                           file_name=f"ficha_{sel.replace(' ', '_')}.json",
-                           mime="application/json", key=f"dm_dl_{sel}")
+    # La ficha en detalle y el log van lado a lado: el DM ve el resultado de
+    # cada tirada sin salir del monitor.
+    col_ficha, col_log = st.columns([3, 2])
+    with col_ficha:
+        st.markdown('<div class="card"><h2>🔍 Ficha en detalle (daños, PA y acciones)</h2></div>',
+                    unsafe_allow_html=True)
+        sel = st.selectbox("Ficha", sorted(chars), key="dm_view_sel",
+                           label_visibility="collapsed")
+        if sel and sel in chars:
+            render_sheet_control(chars[sel], author=f"DM → {sel}", key_prefix="dmctl")
+            st.download_button("💾 Exportar esta ficha (JSON)",
+                               data=char_backup_json(chars[sel]),
+                               file_name=f"ficha_{sel.replace(' ', '_')}.json",
+                               mime="application/json", key=f"dm_dl_{sel}")
+    with col_log:
+        render_log_panel(alto=640)
 
 
 def dm_npc_visibility_panel():

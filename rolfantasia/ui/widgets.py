@@ -1,8 +1,13 @@
 # -*- coding: utf-8 -*-
 """Widgets sincronizados y bloques de UI reutilizables.
 
-Los widgets llevan la revisión de la ficha en su key: si otro usuario modifica
-la ficha, la key cambia y Streamlit recrea el widget con el valor nuevo.
+Hay dos formas de mantener un widget al día con la ficha compartida:
+
+* Campos numéricos y selectores llevan la revisión de la ficha en su key: si
+  alguien modifica la ficha, la key cambia y Streamlit recrea el widget.
+* Los campos de texto usan una key fija y reciben los cambios externos
+  escribiendo en su estado (`_sync_widget`). Recrearlos haría perder el tamaño
+  que el jugador les haya dado al ampliar la caja.
 """
 
 import streamlit as st
@@ -38,13 +43,28 @@ def num_field(c, field, label, min_value=None, key_prefix="", hide_label=False):
     )
 
 
+def _sync_widget(key, valor):
+    """Lleva al widget de key fija el valor actual de la ficha, sin recrearlo.
+
+    Solo escribe si la ficha cambió desde la última sincronización (o si
+    Streamlit descartó el estado del widget porque dejó de pintarse), así no
+    pisa lo que el jugador está escribiendo cuando cambian otros campos.
+    """
+    marca = key + "::sync"
+    if key not in st.session_state or st.session_state.get(marca) != valor:
+        st.session_state[key] = valor
+        st.session_state[marca] = valor
+
+
 def text_field(c, field, label, area=False, height=100, key_prefix=""):
     cname = c["nombre"]
-    key = key_prefix + fkey(cname, field, c["_rev"])
+    # Key sin revisión: el widget sobrevive a los cambios de otros campos y
+    # conserva el tamaño si el jugador amplió la caja.
+    key = f"{key_prefix}f::{cname}::{field}"
+    _sync_widget(key, str(c.get(field, "")))
     fn = st.text_area if area else st.text_input
     kwargs = {"height": height} if area else {}
-    fn(label, value=str(c.get(field, "")), key=key,
-       on_change=commit_field(cname, field, key, kind="str"), **kwargs)
+    fn(label, key=key, on_change=commit_field(cname, field, key, kind="str"), **kwargs)
 
 
 def dmg_attr_selector(c, key_prefix="", label="Estadística base para daños", hide_label=False):
@@ -129,11 +149,19 @@ def render_attr_summary(c):
     st.markdown(" ".join(parts), unsafe_allow_html=True)
 
 
-def render_log(limite=40):
+def render_log(limite=40, alto=None):
+    """Log de la mesa, lo más reciente arriba. `alto` (px) amplía la caja con scroll."""
     rows = [f'<span class="t">[{e["t"]}]</span> <span class="who">{e["who"]}</span> {e["line"]}'
             for e in S["log"][:limite]]
     html = "<br>".join(rows) if rows else '<span class="muted">— El log de la mesa está vacío —</span>'
-    st.markdown(f'<div class="rolllog">{html}</div>', unsafe_allow_html=True)
+    estilo = f' style="max-height:{int(alto)}px"' if alto else ""
+    st.markdown(f'<div class="rolllog"{estilo}>{html}</div>', unsafe_allow_html=True)
+
+
+def render_log_panel(alto=480, limite=60):
+    """Log con su cabecera, pensado para ir en una columna lateral."""
+    st.markdown('<div class="card"><h2>📜 Log de la Mesa</h2></div>', unsafe_allow_html=True)
+    render_log(limite=limite, alto=alto)
 
 
 # --------------------------------------------------------------- PA rápido

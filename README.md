@@ -70,6 +70,12 @@ fatiga de una vez; *Solo coste* aplica únicamente el gasto. En el log de la mes
 queda el tipo de acción y la tirada; el gasto no se publica, porque cada uno lo
 ve ya en su ficha.
 
+**Todo el turno en una pestaña.** La pestaña *Acciones* del jugador reúne el
+selector de estadística para daños (el mismo que en *Mi Ficha*, sincronizado),
+los KPIs, el panel de acciones y, en una columna lateral, el log de la mesa y una
+*Tirada libre* desplegable. En el *Monitor de Fichas* del DM el log va junto a la
+ficha en detalle, para ver el resultado de cada tirada sin cambiar de pestaña.
+
 Cada tipo de tirada tiene su icono para reconocerlo de un vistazo: ⚔️ cuerpo a
 cuerpo y disparos, ✨ hechizos y habilidades, 🏃 movimientos, 🛡️ defensas y
 🛡️⚔️ contraataques.

@@ -6,11 +6,11 @@ import streamlit as st
 from ..characters import char_backup_json, es_visible, visibles_para_jugadores
 from ..store import S
 from .actions import render_action_panel
-from .dice import dice_tool
+from .dice import dice_tool, free_roll_form
 from .reglas import render_reglas
 from .sheet import render_sheet_readonly
 from .widgets import (dmg_attr_selector, num_field, render_attr_inputs, render_damage_matrix,
-                      render_kpis, render_pa_controls, text_field)
+                      render_kpis, render_log_panel, render_pa_controls, text_field)
 
 
 def _tab_ficha(c):
@@ -60,6 +60,22 @@ def _tab_ficha(c):
         )
 
 
+def _tab_acciones(c):
+    """Todo lo de un turno en una sola pestaña: daños, acciones, log y tirada libre."""
+    cname = c["nombre"]
+    col_juego, col_log = st.columns([3, 2])
+    with col_juego:
+        dmg_attr_selector(c, key_prefix="acc_")
+        render_kpis(c)
+        st.markdown('<div style="height:8px"></div>', unsafe_allow_html=True)
+        render_action_panel(c, author=cname, key_prefix="pact")
+        render_pa_controls(c, key_prefix="acc_")
+    with col_log:
+        render_log_panel(alto=460)
+        with st.expander("🎲 Tirada libre", expanded=False):
+            free_roll_form(cname, c, key_prefix=f"accdice_{cname}", compact=True)
+
+
 def _tab_espectador(cname):
     otros = [n for n in sorted(visibles_para_jugadores()) if n != cname]
     if not otros:
@@ -83,10 +99,7 @@ def player_view(cname):
     with tab_ficha:
         _tab_ficha(c)
     with tab_acc:
-        render_kpis(c)
-        st.markdown('<div style="height:8px"></div>', unsafe_allow_html=True)
-        render_action_panel(c, author=cname, key_prefix="pact")
-        render_pa_controls(c, key_prefix="acc_")
+        _tab_acciones(c)
     with tab_dados:
         dice_tool(author=cname, c=c, key_prefix=f"dice_{cname}")
     with tab_esp:
